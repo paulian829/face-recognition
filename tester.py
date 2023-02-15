@@ -25,11 +25,16 @@ def identify_face(img_path,student_names):
         fr.put_text(test_img, predicted_name, x, y)
 
 
-    new_height = int(height/2)
-    new_width = int(width/2)
-    resized_img = cv2.resize(test_img, (new_width, new_height))
+    # new_height = int(height/2)
+    # new_width = int(width/2)
+    resized_img = cv2.resize(test_img, (width, height))
     
     randomID = random.randint(1,100000)
+    # Check if output folder is available if not create it
+    if not os.path.exists('output'):
+        os.makedirs('output')
+
+
     output_path = os.path.join('output', str(randomID)+'.jpg')
     cv2.imwrite(output_path,resized_img)
     

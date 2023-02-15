@@ -10,13 +10,19 @@ from werkzeug.utils import secure_filename
 import json
 import os
 from tester import identify_face
+from config import TRAINING_IMAGES
+
+
 
 
 app = Flask(__name__)
 CORS(app)
 
 # localhost
-app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'training_images')
+app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), TRAINING_IMAGES)
+
+
+
 
 # Hosting
 # app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'face_recognition/training_images')
@@ -202,13 +208,8 @@ def upload_images(id):
 
     images = request.files.getlist('images')
 
-    # localhost
-    folder_path = os.path.join('training_images', str(id))
+    folder_path = os.path.join(TRAINING_IMAGES, str(id))
 
-
-    # Hosting
-    # folder_path = os.path.join('face_recognition/training_images', str(id))
- 
     # Create the folder if it doesn't exist
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
@@ -238,6 +239,10 @@ def recognize():
         return jsonify({'error': 'No file part'}), 400
 
     image = request.files['image']
+
+    # Check if test-data is available if not create it
+    if not os.path.exists('test-data'):
+        os.makedirs('test-data')
 
     # Save the image to the folder
     randomID = random.randint(1,100000)
