@@ -9,6 +9,7 @@ from sqlalchemy.ext.declarative import DeclarativeMeta
 from werkzeug.utils import secure_filename
 import json
 import os
+from tester import identify_face
 
 
 app = Flask(__name__)
@@ -231,7 +232,43 @@ def upload_images(id):
     return jsonify({'success': 'Images uploaded successfully!',"studentID":id}), 200
 
 
+@app.route('/recognize', methods=['POST'])
+def recognize():
+    if 'image' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
 
+    image = request.files['image']
+
+    # Save the image to the folder
+    randomID = random.randint(1,100000)
+    filename = secure_filename(str(randomID)+'.jpg')
+    filepath = os.path.join('test-data', filename)
+    image.save(filepath)
+
+
+    session = Session()
+    list_of_students = session.query(Students).all()
+    # Create an Array with Student Names Output 
+    student_obj = {0:'Elon Musk'}
+    
+    for each_student in list_of_students:
+        print(each_student)
+        student_obj[each_student.id] = each_student.name
+        
+        
+    # Recognize the student
+    output = identify_face(filepath, student_obj)
+    
+    print(output)
+    
+    
+
+    # Delete the image
+    # os.remove(filepath)
+
+    # Return the recognized student
+    # return jsonify({'student': list_of_students}), 200
+    return output
 
 if __name__ == '__main__':
     app.run(debug=True)
