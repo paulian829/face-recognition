@@ -11,8 +11,7 @@ import json
 import os
 from tester import identify_face
 from config import TRAINING_IMAGES_FOLDER, TEST_DATA_FOLDER, OUTPUT_FOLDER
-
-
+from data_augmentation import create_augmented_images
 
 
 app = Flask(__name__)
@@ -222,6 +221,8 @@ def upload_images(id):
         filepath = os.path.join(folder_path, filename)
         filepath = os.path.join(folder_path, filename)
         image.save(filepath)
+
+        create_augmented_images(filepath,folder_path,randomID)
 
 
         # Save the image to the database

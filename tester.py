@@ -20,7 +20,8 @@ def identify_face(img_path,student_names):
         label, confidence = face_recognizer.predict(roi_gray)
         fr.draw_rect(test_img, faces)
         predicted_name = student_names[label]
-        if confidence > 37: #If confidence more than 37 then don't print predicted face text on screen
+        print(confidence)
+        if confidence > 45: #If confidence more than 37 then don't print predicted face text on screen
             predicted_name = 'Unknown'
         fr.put_text(test_img, predicted_name, x, y)
 
