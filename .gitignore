@@ -1,8 +1,8 @@
 /venv/*
-# /test-data/*
-# /training_images/*
-# /output/*
-# /__pycache__/*
-# /.ipynb_checkpoints/*
-# /.vscode/*
-# mydb.db 
+/test-data/*
+/training_images/*
+/output/*
+/__pycache__/*
+/.ipynb_checkpoints/*
+/.vscode/*
+mydb.db 
