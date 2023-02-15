@@ -14,8 +14,11 @@ import os
 app = Flask(__name__)
 CORS(app)
 
+# localhost
 app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'training_images')
 
+# Hosting
+# app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'face_recognition/training_images')
 engine = create_engine('sqlite:///mydb.db')
 Session = sessionmaker(bind=engine)
 Base = declarative_base()
@@ -30,16 +33,16 @@ class Students(Base):
     course = Column(String)
     section = Column(String)
     date_created = Column(DateTime, default=datetime.utcnow)
-    
+
 class StudentsImages(Base):
     __tablename__ = 'students_images'
     id = Column(Integer, primary_key=True)
     studentID = Column(Integer)
     filename = Column(String)
     date_created = Column(DateTime, default=datetime.utcnow)
-    
-    
-    
+
+
+
 Base.metadata.create_all(engine)
 
 
@@ -77,7 +80,7 @@ def get_all_students():
 def add_students():
     """
     Accepts a JSON object with the following fields:
-    
+
     {
         "name": "John Doe",
         "email":"example@email.com",
@@ -89,7 +92,7 @@ def add_students():
         _type_: _description_
     """
     data = request.get_json()
-    
+
     # Check if data contains all data required
     if all(field in data for field in REQUIRED_FIELDS):
         session = Session()
@@ -97,12 +100,12 @@ def add_students():
         session.add(new_student)
         session.commit()
         return jsonify({'success': 'Student added successfully!'}), 200
-        
+
     else:
         missing_keys = [key for key in REQUIRED_FIELDS if key not in data]
         error_msg = f"Missing required keys: {', '.join(missing_keys)}"
         return jsonify({'error': 'Missing data!', "msg":error_msg}), 400
-    
+
 @app.route('/students/<int:id>', methods=['GET'])
 def get_student(id):
     session = Session()
@@ -121,16 +124,16 @@ def delete_student(id):
     session.delete(student)
     session.commit()
     return jsonify({'success': 'Student deleted successfully!',"studentID":id}), 200
-    
+
 
 @app.route('/students/<int:id>', methods=['PUT'])
 def update_student(id):
     session = Session()
     student = session.query(Students).filter(Students.id==id).first()
-    
+
     if student is None:
         return jsonify({'error': 'Student not found!',"studentID": id}), 404
-    
+
     data = request.json
     if 'name' in data:
         student.name = data['name']
@@ -142,12 +145,12 @@ def update_student(id):
         student.course = data['course']
     if 'section' in data:
         student.section = data['section']
-        
+
     session.commit()
-    
+
     updated_student = session.query(Students).filter(Students.id==id).first()
     return json.dumps(updated_student, cls=AlchemyEncoder)
-    
+
 @app.route('/students/<int:id>/images', methods=['GET'])
 def get_student_images(id):
     session = Session()
@@ -177,48 +180,54 @@ def get_student_images(id):
             'filename': filename,
             'data': url
         })
-        
+
     print(response_data)
     return json.dumps(response_data, cls=AlchemyEncoder)
     # Return the images as attachments
-    
-        
-    
-    
+
+
+
+
 @app.route('/upload/<int:id>', methods=['POST'])
 def upload_images(id):
     session = Session()
     student = session.query(Students).filter(Students.id==id).first()
-    
+
     if student is None:
         return jsonify({'error': 'Student not found!',"studentID": id}), 404
-    
+
     if 'images' not in request.files:
         return jsonify({'error': 'No file part'}), 400
-    
+
     images = request.files.getlist('images')
+
+    # localhost
     folder_path = os.path.join('training_images', str(id))
-    
+
+
+    # Hosting
+    # folder_path = os.path.join('face_recognition/training_images', str(id))
+ 
     # Create the folder if it doesn't exist
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
-        
+
     for image in images:
         # Save the image to the folder
         randomID = random.randint(1,100000)
-        
+
         filename = secure_filename(str(randomID)+(image.filename))
         filepath = os.path.join(folder_path, filename)
         filepath = os.path.join(folder_path, filename)
         image.save(filepath)
-        
-        
+
+
         # Save the image to the database
         new_image = StudentsImages(studentID=id, filename=filename)
         session.add(new_image)
         session.commit()
-        
-        
+
+
     return jsonify({'success': 'Images uploaded successfully!',"studentID":id}), 200
 
 
