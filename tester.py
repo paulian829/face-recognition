@@ -3,7 +3,7 @@ import os
 import numpy as np
 import face_recognition as fr
 import random
-
+from config import TRAINING_IMAGES_FOLDER, TEST_DATA_FOLDER, OUTPUT_FOLDER
 
 def identify_face(img_path,student_names):
     test_img = cv2.imread(img_path)
@@ -11,7 +11,7 @@ def identify_face(img_path,student_names):
 
 
     height, width, channels = test_img.shape
-    faces, faceID = fr.labels_for_training_data('training_images')
+    faces, faceID = fr.labels_for_training_data(TRAINING_IMAGES_FOLDER)
     face_recognizer = fr.train_classifier(faces, faceID)
 
     for faces in faces_detected:
@@ -31,11 +31,11 @@ def identify_face(img_path,student_names):
     
     randomID = random.randint(1,100000)
     # Check if output folder is available if not create it
-    if not os.path.exists('output'):
-        os.makedirs('output')
+    if not os.path.exists(OUTPUT_FOLDER):
+        os.makedirs(OUTPUT_FOLDER)
 
 
-    output_path = os.path.join('output', str(randomID)+'.jpg')
+    output_path = os.path.join(OUTPUT_FOLDER, str(randomID)+'.jpg')
     cv2.imwrite(output_path,resized_img)
     
     return output_path
