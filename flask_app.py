@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 import json
 import os
 from tester import identify_face
-from config import TRAINING_IMAGES_FOLDER, TEST_DATA_FOLDER, OUTPUT_FOLDER
+from config import TRAINING_IMAGES_FOLDER, TEST_DATA_FOLDER, OUTPUT_FOLDER, ENV
 from data_augmentation import create_augmented_images
 
 
@@ -183,7 +183,12 @@ def get_student_images(id):
 
     for image_path in image_files:
         filename = os.path.basename(image_path)
-        url = url_for('static', filename='training_images/' + str(id) + '/' + filename)
+        
+        if (ENV == 'development'):
+            url = url_for('static', filename='training_images/' + str(id) + '/' + filename)
+        else:
+            url = url_for('static', filename= str(id) + '/' + filename)
+        
         response_data.append({
             'filename': filename,
             'data': base_url + url
@@ -281,6 +286,7 @@ def recognize():
 
 @app.route('/static/training_images/<int:id>/<filename>')
 def get_training_image(id, filename):
+    os.path.join(TRAINING_IMAGES_FOLDER, str(id))
     return send_from_directory(os.path.join(TRAINING_IMAGES_FOLDER, str(id)), filename)
 
 if __name__ == '__main__':

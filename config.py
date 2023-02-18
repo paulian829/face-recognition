@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Access environment variables
+ENV = os.getenv('ENV', 'development')
 TRAINING_IMAGES_FOLDER = os.getenv('TRAINING_IMAGES_FOLDER', 'training_images')
 TEST_DATA_FOLDER = os.getenv("TEST_DATA_FOLDER", "test-data")
 OUTPUT_FOLDER = os.getenv("OUTPUT_FOLDER", "output")
