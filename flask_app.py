@@ -207,7 +207,7 @@ def upload_images(id):
     student = session.query(Students).filter(Students.id==id).first()
 
     if student is None:
-        return jsonify({'error': 'Student not found!',"studentID": id}), 404
+        return jsonify({'error': 'Student not found!', 'studentID': id}), 404
 
     if 'images' not in request.files:
         return jsonify({'error': 'No file part'}), 400
@@ -221,24 +221,25 @@ def upload_images(id):
         os.makedirs(folder_path)
 
     for image in images:
+        # Check the image size
+        if len(image.read()) > 1024 * 1024:  # 1MB in bytes
+            return jsonify({'error': 'Image size must be 1MB or less!'}), 400
+        image.seek(0)  # Reset the file pointer to the beginning
+
         # Save the image to the folder
         randomID = random.randint(1,100000)
-
         filename = secure_filename(str(randomID)+(image.filename))
-        filepath = os.path.join(folder_path, filename)
         filepath = os.path.join(folder_path, filename)
         image.save(filepath)
 
         create_augmented_images(filepath,folder_path,randomID)
-
 
         # Save the image to the database
         new_image = StudentsImages(studentID=id, filename=filename)
         session.add(new_image)
         session.commit()
 
-
-    return jsonify({'success': 'Images uploaded successfully!',"studentID":id}), 200
+    return jsonify({'success': 'Images uploaded successfully!', 'studentID': id}), 200
 
 
 @app.route('/recognize', methods=['POST'])
