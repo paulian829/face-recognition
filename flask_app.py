@@ -1,5 +1,5 @@
 import random
-from flask import Flask, request, jsonify, send_file, url_for
+from flask import Flask, request, jsonify, send_file, url_for, send_from_directory
 from flask_cors import CORS
 from sqlalchemy import create_engine, Column, Integer, String,DateTime
 from sqlalchemy.ext.declarative import declarative_base
@@ -174,17 +174,19 @@ def get_student_images(id):
         return jsonify({'error': 'Images not found on server'}), 404
 
     # If only one image is found, return it as an attachment
-    if len(image_files) == 1:
-        return send_file(image_files[0], as_attachment=True)
+    # if len(image_files) == 1:
+    #     return send_file(image_files[0], as_attachment=True)
 
     # If multiple images are found, return them as part of the response
     response_data = []
+    base_url = request.host_url
+
     for image_path in image_files:
         filename = os.path.basename(image_path)
         url = url_for('static', filename='training_images/' + str(id) + '/' + filename)
         response_data.append({
             'filename': filename,
-            'data': url
+            'data': base_url + url
         })
 
     print(response_data)
@@ -275,6 +277,11 @@ def recognize():
     # Return the recognized student
     # return jsonify({'student': list_of_students}), 200
     return output
+
+
+@app.route('/static/training_images/<int:id>/<filename>')
+def get_training_image(id, filename):
+    return send_from_directory(os.path.join(TRAINING_IMAGES_FOLDER, str(id)), filename)
 
 if __name__ == '__main__':
     app.run(debug=True)
