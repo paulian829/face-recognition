@@ -136,8 +136,13 @@ def get_all_students():
         del item['_sa_instance_state']
         
         if item['image'] is not None:
-            item['image'] = url_for('get_training_image',id=item['id'], filename=item['image'], _external=True)
-    
+            
+            if (ENV == 'development'):
+                item['image'] = url_for('static', filename='training_images/' + str(id) + '/' + item['image'], _external=True)
+            else:
+                item['image'] = url_for('static', filename= str(id) + '/' + item['image'], _external=True)
+            
+            
     return jsonify({'students': results}), 200
 
 
