@@ -138,9 +138,9 @@ def get_all_students():
         if item['image'] is not None:
             
             if (ENV == 'development'):
-                item['image'] = url_for('static', filename='training_images/' + str(id) + '/' + item['image'], _external=True)
+                item['image'] = url_for('static', filename='training_images/' + str(item['id']) + '/' + item['image'], _external=True)
             else:
-                item['image'] = url_for('static', filename= str(id) + '/' + item['image'], _external=True)
+                item['image'] = url_for('static', filename= str(item['id']) + '/' + item['image'], _external=True)
             
             
     return jsonify({'students': results}), 200
