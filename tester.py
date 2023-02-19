@@ -39,7 +39,7 @@ def identify_face(img_path,student_names):
     output_path = os.path.join(OUTPUT_FOLDER, str(randomID)+'.jpg')
     cv2.imwrite(output_path,resized_img)
     
-    return output_path
+    return str(randomID)+'.jpg' , label
     # cv2.imshow("face detection tutorial", resized_img)
     # cv2.waitKey(0)
     # cv2.destroyAllWindows

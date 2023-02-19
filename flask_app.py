@@ -39,6 +39,18 @@ class Students(Base):
     course = Column(String)
     section = Column(String)
     date_created = Column(DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'email': self.email,
+            'contact': self.contact,
+            'course': self.course,
+            'section': self.section,
+            'date_created': self.date_created
+        }
+    
 
 class StudentsImages(Base):
     __tablename__ = 'students_images'
@@ -55,18 +67,20 @@ Base.metadata.create_all(engine)
 class AlchemyEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj.__class__, DeclarativeMeta):
-            # an SQLAlchemy class
+            # If the object is a SQLAlchemy class, return a dictionary of its properties
             fields = {}
             for field in [x for x in dir(obj) if not x.startswith('_') and x != 'metadata']:
                 data = obj.__getattribute__(field)
                 try:
-                    json.dumps(data)  # this will fail on non-encodable values, like other classes
+                    json.dumps(data)  # Check if the field value can be converted to JSON
                     fields[field] = data
                 except TypeError:
-                    fields[field] = None
+                    if isinstance(data, datetime):
+                        fields[field] = data.isoformat()
+                    else:
+                        fields[field] = None
             # a json-encodable dict
             return fields
-
         return json.JSONEncoder.default(self, obj)
 
 REQUIRED_FIELDS = ['name', 'email', 'contact', 'course','section']
@@ -75,11 +89,58 @@ REQUIRED_FIELDS = ['name', 'email', 'contact', 'course','section']
 def index():
     return 'Hello, World!'
 
+from sqlalchemy import func
+
 @app.route('/students', methods=['GET'])
 def get_all_students():
+    """_summary_
+
+    Returns:
+        students: object
+        
+        {
+            "students": [
+                		{
+                            "contact": "1234567890",
+                            "course": "B.Tech",
+                            "date_created": "Sat, 18 Feb 2023 04:04:39 GMT",
+                            "email": "example@email.com",
+                            "id": 1,
+                            "image": "http://localhost:5000/static/training_images/1/28519elon7.jpg",
+                            "name": "Ellon Musk",
+                            "section": "A"
+                        }
+            ]
+        }
+        
+    """
     session = Session()
-    students = session.query(Students).all()
-    return json.dumps(students, cls=AlchemyEncoder)
+    students = session.query(Students, func.min(StudentsImages.id).label('id'))\
+        .outerjoin(StudentsImages, Students.id == StudentsImages.studentID)\
+        .group_by(Students.id).all()
+    # The above query retrieves all students, and the minimum image ID for each student, using a left outer join
+    # on the Students and StudentsImages tables. We group the result by the student ID.
+
+    results = []
+    for student, image_id in students:
+        student_dict = student.__dict__
+        if image_id:
+            image = session.query(StudentsImages).filter_by(id=image_id).one()
+            student_dict['image'] = image.filename
+        else:
+            student_dict['image'] = None
+        results.append(student_dict)
+    
+    for item in results:
+        # delete the _sa_instance_state key
+        del item['_sa_instance_state']
+        
+        if item['image'] is not None:
+            item['image'] = url_for('get_training_image',id=item['id'], filename=item['image'], _external=True)
+    
+    return jsonify({'students': results}), 200
+
+
 
 
 @app.route('/students', methods=['POST'])
@@ -198,8 +259,49 @@ def get_student_images(id):
     return json.dumps(response_data, cls=AlchemyEncoder)
     # Return the images as attachments
 
+@app.route('/training_images', methods=['GET'])
+def get_all_training_images():
+    session = Session()
+    student_images = session.query(StudentsImages).all()
+    return json.dumps(student_images, cls=AlchemyEncoder)
 
+@app.route('/student/training_images/<int:id>', methods=['GET'])
+def get_training_image_student(id):
+    session = Session()
 
+    training_images = session.query(StudentsImages).filter(StudentsImages.id==id).all()
+    response_data = []
+    base_url = request.host_url
+    for image in training_images:
+        print(image.filename)
+        # filename = os.path.basename(image.filename)
+
+        # if (ENV == 'development'):
+        #     url = os.path.join(app.config['UPLOAD_FOLDER'], str(image.studentID), image.filename)
+        # else:
+        #     url = url_for('static', filename= str(id) + '/' + image.filename)
+        
+        filename = os.path.basename(image.filename)
+        
+        if (ENV == 'development'):
+            url = url_for('static', filename='training_images/' + str(id) + '/' + filename)
+        else:
+            url = url_for('static', filename= str(id) + '/' + filename)
+        # Convert to string the image.date_created
+        
+        
+           
+        print(image.date_created)
+        response_data.append({
+            'id': image.id,
+            'name': image.filename,
+            'filename': image.filename,
+            'date_created': str(image.date_created),
+            'studentID': image.studentID,
+            'url':base_url + url
+        })
+
+    return json.dumps(response_data, cls=AlchemyEncoder)
 
 @app.route('/upload/<int:id>', methods=['POST'])
 def upload_images(id):
@@ -271,19 +373,31 @@ def recognize():
         
         
     # Recognize the student
-    output = identify_face(filepath, student_obj)
+    output, label = identify_face(filepath, student_obj)
+    output_obj = {}
+    output_obj['url'] = url_for('get_output_image', filename=output, _external=True)
+    output_obj['label'] = label
     
-    print(output)
     
+    # Get student details from database key = label
     
+    session = Session()
+    student = session.query(Students).filter(Students.id==label).first()
+    student_obj = {
+        'id': student.id,
+        'name': student.name,
+        'email': student.email,
+        'contact': student.contact,
+        'course': student.course,
+        'section': student.section,
+        'date_created': student.date_created,
+    }
+    
+    return jsonify({'success': 'Image recognized successfully!', 'output': output_obj, 'student':student_obj}), 200
 
-    # Delete the image
-    # os.remove(filepath)
-
-    # Return the recognized student
-    # return jsonify({'student': list_of_students}), 200
-    return output
-
+@app.route('/static/get_output/<filename>')
+def get_output_image(filename):
+    return send_from_directory(OUTPUT_FOLDER, filename)
 
 @app.route('/static/training_images/<int:id>/<filename>')
 def get_training_image(id, filename):
