@@ -12,6 +12,8 @@ import os
 from tester import identify_face
 from config import TRAINING_IMAGES_FOLDER, TEST_DATA_FOLDER, OUTPUT_FOLDER, ENV
 from data_augmentation import create_augmented_images
+import shutil
+
 
 
 app = Flask(__name__)
@@ -84,6 +86,17 @@ class AlchemyEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 REQUIRED_FIELDS = ['name', 'email', 'contact', 'course','section']
+
+
+def serialize_student(student):
+    return {
+        'id': student.id,
+        'name': student.name,
+        'email': student.email,
+        'contact': student.contact,
+        'course': student.course,
+        'section': student.section
+    }
 
 @app.route('/')
 def index():
@@ -161,7 +174,10 @@ def add_students():
         "section":"A"
     }
     Returns:
-        _type_: _description_
+        {
+            "success": "Student added successfully!",
+            "student": {"id": 1, "name": "John Doe", "email": "example@email.com", "contact": "1234567890", "course": "B.Tech", "section": "A"}
+        }
     """
     data = request.get_json()
 
@@ -171,12 +187,15 @@ def add_students():
         new_student = Students(name=data['name'], email=data['email'], contact=data['contact'], course=data['course'], section=data['section'])
         session.add(new_student)
         session.commit()
-        return jsonify({'success': 'Student added successfully!'}), 200
+        latest_student = session.query(Students).order_by(Students.id.desc()).first()
+        serialize_student_obj = serialize_student(latest_student)
+        return jsonify({'success': 'Student added successfully!', 'student': serialize_student_obj}), 200
 
     else:
         missing_keys = [key for key in REQUIRED_FIELDS if key not in data]
         error_msg = f"Missing required keys: {', '.join(missing_keys)}"
         return jsonify({'error': 'Missing data!', "msg":error_msg}), 400
+
 
 @app.route('/students/<int:id>', methods=['GET'])
 def get_student(id):
@@ -186,16 +205,35 @@ def get_student(id):
         return jsonify({'error': 'Student not found!'}), 404
     return json.dumps(student, cls=AlchemyEncoder)
 
-# Delete a student
 @app.route('/students/<int:id>', methods=['DELETE'])
 def delete_student(id):
     session = Session()
     student = session.query(Students).filter(Students.id==id).first()
+    student_images = session.query(StudentsImages).filter(StudentsImages.studentID==id).all()
+    
     if student is None:
-        return jsonify({'error': 'Student not found!',"studentID":id}), 404
+        return jsonify({'error': 'Student not found!', 'studentID': id}), 404
+    
+    # delete the student's images
+    for student_image in student_images:
+        session.delete(student_image)
+    
+    try:
+        student_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(id))
+        shutil.rmtree(student_folder)
+
+        
+        # delete the student's folder
+        student_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(id))
+        os.rmdir(student_folder)
+    except:
+        print("Student folder not found")
+
+    # delete the student
     session.delete(student)
     session.commit()
-    return jsonify({'success': 'Student deleted successfully!',"studentID":id}), 200
+
+    return jsonify({'success': 'Student deleted successfully!', 'studentID': id}), 200
 
 
 @app.route('/students/<int:id>', methods=['PUT'])
@@ -408,6 +446,35 @@ def get_output_image(filename):
 def get_training_image(id, filename):
     os.path.join(TRAINING_IMAGES_FOLDER, str(id))
     return send_from_directory(os.path.join(TRAINING_IMAGES_FOLDER, str(id)), filename)
+
+@app.route('/delete/image/<int:id>', methods=['DELETE'])
+def delete_image(id):
+    session = Session()
+    image = session.query(StudentsImages).filter(StudentsImages.id==id).first()
+
+    if image is None:
+        return jsonify({'error': 'Image not found!', 'imageID': id}), 404
+
+    # Delete the image from the folder
+    filepath = os.path.join(TRAINING_IMAGES_FOLDER, str(image.studentID), image.filename)
+    os.remove(filepath)
+
+    # Delete the image from the database
+    session.delete(image)
+    session.commit()
+
+    return jsonify({'success': 'Image deleted successfully!', 'imageID': id}), 200
+
+
+def serialize_student(student):
+    return {
+        'id': student.id,
+        'name': student.name,
+        'email': student.email,
+        'contact': student.contact,
+        'course': student.course,
+        'section': student.section
+    }
 
 if __name__ == '__main__':
     app.run(debug=True)
