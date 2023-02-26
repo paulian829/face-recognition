@@ -13,7 +13,7 @@ def identify_face(img_path,student_names):
     height, width, channels = test_img.shape
     faces, faceID = fr.labels_for_training_data(TRAINING_IMAGES_FOLDER)
     face_recognizer = fr.train_classifier(faces, faceID)
-
+    label = 'Unknown'
     for faces in faces_detected:
         (x,y,w,h) = faces
         roi_gray = gray_img[y:y+w, x:x+h]
@@ -21,8 +21,9 @@ def identify_face(img_path,student_names):
         fr.draw_rect(test_img, faces)
         predicted_name = student_names[label]
         print(confidence)
-        if confidence > 45: #If confidence more than 37 then don't print predicted face text on screen
+        if confidence > 40: #If confidence more than 40 then don't print predicted face text on screen
             predicted_name = 'Unknown'
+            label = 'Unknown'
         fr.put_text(test_img, predicted_name, x, y)
 
 

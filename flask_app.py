@@ -423,18 +423,20 @@ def recognize():
     
     
     # Get student details from database key = label
-    
-    session = Session()
-    student = session.query(Students).filter(Students.id==label).first()
-    student_obj = {
-        'id': student.id,
-        'name': student.name,
-        'email': student.email,
-        'contact': student.contact,
-        'course': student.course,
-        'section': student.section,
-        'date_created': student.date_created,
-    }
+    if label != 'Unknown':
+        session = Session()
+        student = session.query(Students).filter(Students.id==label).first()
+        student_obj = {
+            'id': student.id,
+            'name': student.name,
+            'email': student.email,
+            'contact': student.contact,
+            'course': student.course,
+            'section': student.section,
+            'date_created': student.date_created,
+        }
+    else:
+        student_obj = 'Unknown'
     
     return jsonify({'success': 'Image recognized successfully!', 'output': output_obj, 'student':student_obj}), 200
 
@@ -475,6 +477,62 @@ def serialize_student(student):
         'course': student.course,
         'section': student.section
     }
+    
+    
+    
+@app.route('/recognize_multiple', methods=['POST'])
+def recognize_multiple():
+    if 'image' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+
+    files = request.files.getlist('image')
+    output_list = []
+    
+    # Check if test-data is available if not create it
+    if not os.path.exists(TEST_DATA_FOLDER):
+        os.makedirs(TEST_DATA_FOLDER)
+
+    for image in files:
+        # Save the image to the folder
+        randomID = random.randint(1,100000)
+        filename = secure_filename(str(randomID)+'.jpg')
+        filepath = os.path.join(TEST_DATA_FOLDER, filename)
+        image.save(filepath)
+
+        session = Session()
+        list_of_students = session.query(Students).all()
+        # Create an Array with Student Names Output 
+        student_obj = {0:'Elon Musk'}
+    
+        for each_student in list_of_students:
+            print(each_student)
+            student_obj[each_student.id] = each_student.name
+
+        # Recognize the student
+        output, label = identify_face(filepath, student_obj)
+        output_obj = {}
+        output_obj['url'] = url_for('get_output_image', filename=output, _external=True)
+        output_obj['label'] = label
+        
+        # Get student details from database key = label
+        if label != 'Unknown':
+            session = Session()
+            student = session.query(Students).filter(Students.id==label).first()
+            student_obj = {
+                'id': student.id,
+                'name': student.name,
+                'email': student.email,
+                'contact': student.contact,
+                'course': student.course,
+                'section': student.section,
+                'date_created': student.date_created,
+            }
+        else:
+            student_obj = 'Unknown'
+        
+        output_list.append({'output': output_obj, 'student': student_obj})
+
+    return jsonify({'success': 'Images recognized successfully!', 'outputs': output_list}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
