@@ -35,12 +35,10 @@ def create_augmented_images(file_path,path,randomID):
                                 np.float32([[cols*(1-zoom_scale)/2, rows*(1-zoom_scale)/2],
                                             [cols*(1+zoom_scale)/2, rows*(1-zoom_scale)/2],
                                             [cols/2, rows/2]]))
-    face_zoomed = cv2.warpAffine(face, M, (cols, rows))
 
     # Create a sheared version of the image
     shear_angle = 30
     M = np.float32([[1, shear_angle, 0], [0, 1, 0]])
-    face_sheared = cv2.warpAffine(face, M, (cols, rows))
 
     # Create a sharpened version of the image
     kernel_sharpen = np.array([[-1,-1,-1],[-1,9,-1],[-1,-1,-1]])
@@ -60,8 +58,6 @@ def create_augmented_images(file_path,path,randomID):
     cv2.imwrite(os.path.join(path,'blurred'+str(randomID)+'.jpg'), face_blurred)
     cv2.imwrite(os.path.join(path,'noisy'+str(randomID)+'.jpg'), face_noisy)
     cv2.imwrite(os.path.join(path,'gray'+str(randomID)+'.jpg'), face_gray)
-    cv2.imwrite(os.path.join(path,'zoomed'+str(randomID)+'.jpg'), face_zoomed)
-    cv2.imwrite(os.path.join(path,'sheared'+str(randomID)+'.jpg'), face_sheared)
     cv2.imwrite(os.path.join(path,'sharp'+str(randomID)+'.jpg'), face_sharpened)
 
     return
