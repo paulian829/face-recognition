@@ -270,7 +270,7 @@ def get_student_images(id):
 
     image_files = []
     for image in student_images:
-        image_path = os.path.join(app.config['UPLOAD_FOLDER'], str(image.studentID), image.filename)
+        image_path = os.path.join(TRAINING_IMAGES_FOLDER, str(image.studentID), image.filename)
         if os.path.isfile(image_path):
             image_files.append(image_path)
 
@@ -375,6 +375,7 @@ def upload_images(id):
         randomID = random.randint(1,100000)
         filename = secure_filename(str(randomID)+(image.filename))
         filepath = os.path.join(folder_path, filename)
+        print(filepath)
         image.save(filepath)
 
         create_augmented_images(filepath,folder_path,randomID)
@@ -440,9 +441,9 @@ def recognize():
     
     return jsonify({'success': 'Image recognized successfully!', 'output': output_obj, 'student':student_obj}), 200
 
-@app.route('/static/get_output/<filename>')
+@app.route('/static/output/<filename>')
 def get_output_image(filename):
-    return send_from_directory(OUTPUT_FOLDER, filename)
+    return send_from_directory(os.path.join(OUTPUT_FOLDER), filename)
 
 @app.route('/static/training_images/<int:id>/<filename>')
 def get_training_image(id, filename):

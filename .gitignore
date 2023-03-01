@@ -1,5 +1,5 @@
 /venv/*
-static./test-data/*
+static/test-data/*
 static/training_images/*
 static/output/*
 /__pycache__/*
